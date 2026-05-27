@@ -1,7 +1,7 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 from pathlib import Path
-from app.settings import SECRET_KEY
-
+from app.config import SECRET_KEY
+from app.supabase_client import supabase
 
 """
 BASE_DIR
@@ -37,16 +37,39 @@ Serve para o Flask proteger:
 app.secret_key = SECRET_KEY
 
 @app.route('/', methods=['GET', 'POST'])
-def home():
-    if request.method == 'POST':
-        user = request.form['usuario']
-        pwd = request.form['senha']
+def home(): 
 
     return render_template('index.html')
 
-@app.route('/register', methods=['GET', 'POST'])
+@app.route('/register', methods=["GET", "POST"])
 def register():
+    if request.method == "POST":
+        email = request.form['email']
+        password = request.form['password']
+        first_name = request.form['first_name']
+        last_name = request.form['last_name']
+
+
+        try:
+            response = supabase.auth.sign_up(
+                {
+                    "email" : email,
+                    "password" : password
+                })
+                
+            if response.user:
+                user_id = response.user.id
+
+                supabase.table('profiles').insert({
+                    "id": user_id,
+                    "first_name": first_name,
+                    "last_name": last_name
+                }).execute()
+
+                return redirect('login')
         
+        except Exception as e:
+            print(e)  
     return render_template('register.html')
 
 if __name__ == '__main__':
