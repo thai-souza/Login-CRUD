@@ -39,7 +39,7 @@ app.secret_key = SECRET_KEY
 @app.route('/', methods=['GET', 'POST'])
 def home(): 
 
-    return render_template('index.html')
+    return render_template('index.html', context={})
 
 @app.route('/register', methods=["GET", "POST"])
 def register():
@@ -49,28 +49,28 @@ def register():
         first_name = request.form['first_name']
         last_name = request.form['last_name']
 
-
         try:
             response = supabase.auth.sign_up(
                 {
                     "email" : email,
                     "password" : password
+                    
                 })
                 
+            user_id = response.user.id
+            
+            supabase.table('profiles').insert({
+                "id": user_id,
+                "first_name": first_name,
+                "last_name": last_name
+            }).execute()
+            
             if response.user:
-                user_id = response.user.id
-
-                supabase.table('profiles').insert({
-                    "id": user_id,
-                    "first_name": first_name,
-                    "last_name": last_name
-                }).execute()
-
-                return redirect('login')
+                return redirect(url_for('home'))
         
         except Exception as e:
-            print(e)  
-    return render_template('register.html')
+            return e
+    return render_template('register.html', context={}, error=e)
 
 if __name__ == '__main__':
     app.run(debug=True)
